@@ -17,6 +17,11 @@
 
 <script>
 import axios from 'axios'
+      var CLIENT_ID = '';
+      var CLIENT_SECRET = '';
+      var API_KEY = ''
+      var DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
+      var SCOPES = 'https://www.googleapis.com/auth/drive.file';
 export default {
   name: 'Home',
   data() {
@@ -38,17 +43,19 @@ export default {
           scope: SCOPES
         }).then(function (resp) {
           console.log("resp " , resp)
+          // Listen for sign-in state changes.
           gapi.auth2.getAuthInstance().isSignedIn.listen(_self.updateSigninStatus);
+// console.log("gapi.auth2.getAuthInstance().isSignedIn.get() " , gapi.auth2.getAuthInstance().isSignedIn.get())
+          // Handle the initial sign-in state.
           _self.updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
         }, function(error) {
-          console.log("error ", error)
+          _self.appendPre(JSON.stringify(error, null, 2));
         });
       },
       updateSigninStatus(isSignedIn) {
         if (isSignedIn) {
-          this.isSignedIn =true
+          this.listFiles();
         } else {
-          this.isSignedIn =true
         }
       },
       handleAuthClick(event) {
@@ -56,6 +63,29 @@ export default {
       },
       handleSignoutClick(event) {
         gapi.auth2.getAuthInstance().signOut();
+      },
+      appendPre(message) {
+        var pre = document.getElementById('content');
+        var textContent = document.createTextNode(message + '\n');
+        pre.appendChild(textContent);
+      },
+      listFiles() {
+        let _self = this
+        gapi.client.drive.files.list({
+          'pageSize': 10,
+          'fields': "nextPageToken, files(id, name)"
+        }).then(function(response) {
+          _self.appendPre('Files:');
+          var files = response.result.files;
+          if (files && files.length > 0) {
+            for (var i = 0; i < files.length; i++) {
+              var file = files[i];
+              _self.appendPre(file.name + ' (' + file.id + ')');
+            }
+          } else {
+            _self.appendPre('No files found.');
+          }
+        })
       },
       async addtoDrive(){
         console.log("gapi.client " , gapi.client)
